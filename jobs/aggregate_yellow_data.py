@@ -1,13 +1,20 @@
 import argparse
 
 import pyspark.sql.functions as F
-from pyspark import SparkContext
-from pyspark.sql import SQLContext
+from pyspark.sql import SparkSession, SQLContext
 
 def run_job(bucket: str, year: int, month: int):
-    sc = SparkContext.getOrCreate()
-    sqlContext = SQLContext(sc)
-    df = sqlContext.read.parquet(
+    spark = (
+        SparkSession.builder.config(
+            "spark.sql.sources.partitionOverwriteMode", "dynamic"
+        )
+        .appName("aggregate_yellow_data")
+        .getOrCreate()
+    )
+
+    sc = spark.sparkContext
+    sql_context = SQLContext(sc)
+    df = sql_context.read.parquet(
         f"gs://{bucket}/dataset/yellow/year={year}/month={month}/"
     )
 
@@ -25,7 +32,7 @@ def run_job(bucket: str, year: int, month: int):
     )
 
     df = df.groupBy(
-        ["year", "month", "day", "hour", "PULocationID", "DOLocationID"]
+        ["year", "month", "day", "hour", "dow", "PULocationID", "DOLocationID"]
     ).agg(
         F.count("tpep_dropoff_datetime").alias("qty"),
         F.avg("passenger_count").alias("avg_passenger_count"),
