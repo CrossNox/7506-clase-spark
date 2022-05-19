@@ -3,7 +3,6 @@
 from datetime import datetime
 
 from airflow import DAG
-from airflow.contrib.sensors.gcs_sensor import GoogleCloudStoragePrefixSensor
 from airflow.providers.google.cloud.operators.dataproc import (
     ClusterGenerator, DataprocCreateClusterOperator,
     DataprocDeleteClusterOperator, DataprocSubmitPySparkJobOperator)
@@ -11,18 +10,18 @@ from airflow.utils import trigger_rule
 
 default_args = {
     "owner": "7506",
-    "start_date": datetime(2011, 1, 1),
+    "start_date": datetime(2022, 5, 1),
     "retries": 1,
     "depends_on_past": False,
 }
 
 dag = DAG(
-    "aggregate_data",
-    description="Monthly yellow data analytics aggregation",
+    "predict_yellow",
+    description="Train a predictor of yellow hail qty per location and hour",
     default_args=default_args,
-    schedule_interval="@monthly",
+    schedule_interval=None,
     max_active_runs=1,
-    catchup=True,
+    catchup=False,
 )
 
 NUM_WORKERS = 2
@@ -30,7 +29,7 @@ VCPUS_PER_WORKER = 2
 PARALLELISM_MULTIPLIER = 3
 
 project_id = "datos-350705"
-cluster_name = "agg-yellow-data"
+cluster_name = "pred-yellow-data"
 
 CLUSTER_CONFIG = ClusterGenerator(
     project_id=project_id,
@@ -40,7 +39,7 @@ CLUSTER_CONFIG = ClusterGenerator(
     worker_machine_type="n1-standard-2",
     worker_disk_size=50,
     master_disk_size=50,
-    zone="us-central1-a",
+    zone="us-west1-b",
     subnetwork_uri="default",
     properties={
         "spark:spark.default.parallelism": str(
@@ -50,48 +49,39 @@ CLUSTER_CONFIG = ClusterGenerator(
     enable_component_gateway=True,
 ).make()
 
-sense_prefix = GoogleCloudStoragePrefixSensor(
-    task_id="sense_data_prefix",
-    bucket="7506-nyc-taxi",
-    prefix="dataset/yellow/year={{ dag_run.logical_date.year }}/month={{ dag_run.logical_date.month }}",
-    dag=dag,
-)
-
 create_dataproc_cluster = DataprocCreateClusterOperator(
-    task_id="create_data_agg_dataproc_cluster",
+    task_id="create_data_pred_dataproc_cluster",
     project_id=project_id,
     cluster_name=cluster_name,
     cluster_config=CLUSTER_CONFIG,
-    region="us-central1",
+    region="us-west1",
     dag=dag,
 )
 
 submit_job = DataprocSubmitPySparkJobOperator(
-    task_id="submit_aggregate_data_task",
-    job_name="pyspark_aggregate_data_task",
+    task_id="submit_data_pred_task",
+    job_name="pyspark_yellow_pred_task",
     project_id=project_id,
     cluster_name=cluster_name,
-    main="gs://7506-spark/jobs/aggregate_yellow_data.py",
+    main="gs://7506-spark/jobs/predict_qty_by_location.py",
     arguments=[
         "--bucket-name",
         "7506-nyc-taxi",
-        "--year",
-        "{{ dag_run.logical_date.year }}",
-        "--month",
-        "{{ dag_run.logical_date.month }}",
+        "--artifacts-bucket-name",
+        "7506-spark",
     ],
-    region="us-central1",
+    region="us-west1",
     files=["gs://7506-spark/jars/gcs-connector-hadoop3-latest.jar"],
     dag=dag,
 )
 
 delete_dataproc_cluster = DataprocDeleteClusterOperator(
-    task_id="delete_data_agg_dataproc_cluster",
+    task_id="delete_data_pred_dataproc_cluster",
     project_id=project_id,
-    region="us-central1",
+    region="us-west1",
     cluster_name=cluster_name,
     trigger_rule=trigger_rule.TriggerRule.ALL_DONE,
     dag=dag,
 )
 
-sense_prefix >> create_dataproc_cluster >> submit_job >> delete_dataproc_cluster
+create_dataproc_cluster >> submit_job >> delete_dataproc_cluster

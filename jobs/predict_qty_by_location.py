@@ -18,12 +18,12 @@ def run_job(bucket: str, artifacts_bucket: str):
 
     sc = spark.sparkContext
     sql_context = SQLContext(sc)
-    df = sql_context.read.parquet(f"gs://{bucket}/dataset/yellow/")
+    df = sql_context.read.parquet(f"gs://{bucket}/analytical/yellow/")
 
-    df = df.select("PULocationID", "hour", "qty")
+    df = df.select("PULocationID", "hour", "qty", "dow")
 
     assembler = VectorAssembler(
-        inputCols=["PULocationID", "hour"], outputCol="features"
+        inputCols=["PULocationID", "hour", "dow"], outputCol="features"
     )
     transformed_data = assembler.transform(df)
 
@@ -42,7 +42,7 @@ def run_job(bucket: str, artifacts_bucket: str):
     mae = evaluator.evaluate(predictions)
     print("Test MAE = ", mae)
 
-    model.save([sc], [f"gs://{artifacts_bucket}/yellow_{datetime.now():%Y_%m_%d}"])
+    model.save(f"gs://{artifacts_bucket}/yellow/{datetime.now():%Y_%m_%d}")
 
 
 def main():
