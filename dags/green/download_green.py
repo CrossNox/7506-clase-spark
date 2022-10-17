@@ -9,8 +9,7 @@ from airflow.operators.python import PythonOperator
 from google.cloud import storage
 from tqdm import tqdm
 
-DEFAULT_URL = "https://nyc-tlc.s3.amazonaws.com/trip+data/{dataset}_tripdata_{year}-{month:02}.{file_format}"
-
+DEFAULT_URL = "https://d37ci6vzurychx.cloudfront.net/trip-data/{dataset}_tripdata_{year}-{month:02}.parquet"
 
 cfg = ycm.Config(from_items={})
 
@@ -70,6 +69,7 @@ dag = DAG(
     max_active_runs=4,
     catchup=True,
     render_template_as_native_obj=True,
+    is_paused_upon_creation=True
 )
 
 
@@ -87,8 +87,8 @@ with dag:
         python_callable=check_file_available,
         op_kwargs={
             "dataset": "green",
-            "year": "{{ dag_run.logical_date.year }}",
-            "month": "{{ dag_run.logical_date.month }}",
+            "year": "{{ logical_date.subtract(months=2).year }}",
+            "month": "{{ logical_date.subtract(months=2).month }}",
             "file_format": "parquet",
         },
     )
@@ -98,8 +98,8 @@ with dag:
         python_callable=download_dataset,
         op_kwargs={
             "dataset": "green",
-            "year": "{{ dag_run.logical_date.year }}",
-            "month": "{{ dag_run.logical_date.month }}",
+            "year": "{{ logical_date.subtract(months=2).year }}",
+            "month": "{{ logical_date.subtract(months=2).month }}",
             "file_format": "parquet",
         },
     )

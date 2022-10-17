@@ -11,7 +11,7 @@ from airflow.utils import trigger_rule
 
 default_args = {
     "owner": "7506",
-    "start_date": datetime(2011, 1, 1),
+    "start_date": datetime(2011, 1, 3),
     "retries": 1,
     "depends_on_past": False,
 }
@@ -29,7 +29,7 @@ NUM_WORKERS = 2
 VCPUS_PER_WORKER = 2
 PARALLELISM_MULTIPLIER = 3
 
-project_id = "datos-350705"
+project_id = "clase-spark-365815"
 cluster_name = "agg-yellow-data"
 
 CLUSTER_CONFIG = ClusterGenerator(
@@ -53,7 +53,7 @@ CLUSTER_CONFIG = ClusterGenerator(
 sense_prefix = GoogleCloudStoragePrefixSensor(
     task_id="sense_data_prefix",
     bucket="7506-nyc-taxi",
-    prefix="dataset/yellow/year={{ dag_run.logical_date.year }}/month={{ dag_run.logical_date.month }}",
+    prefix="dataset/yellow/year={{ logical_date.subtract(months=2).year }}/month={{ logical_date.subtract(months=2).month }}",
     dag=dag,
 )
 
@@ -76,9 +76,9 @@ submit_job = DataprocSubmitPySparkJobOperator(
         "--bucket-name",
         "7506-nyc-taxi",
         "--year",
-        "{{ dag_run.logical_date.year }}",
+        "{{ logical_date.subtract(months=2).year }}",
         "--month",
-        "{{ dag_run.logical_date.month }}",
+        "{{ logical_date.subtract(months=2).month }}",
     ],
     region="us-central1",
     files=["gs://7506-spark/jars/gcs-connector-hadoop3-latest.jar"],

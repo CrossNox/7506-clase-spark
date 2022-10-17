@@ -7,6 +7,7 @@ from pyspark.ml.feature import VectorAssembler
 from pyspark.ml.regression import RandomForestRegressor
 from pyspark.sql import SparkSession, SQLContext
 
+
 def run_job(bucket: str, artifacts_bucket: str):
     spark = (
         SparkSession.builder.config(

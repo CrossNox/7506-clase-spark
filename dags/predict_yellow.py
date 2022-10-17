@@ -22,13 +22,14 @@ dag = DAG(
     schedule_interval=None,
     max_active_runs=1,
     catchup=False,
+    is_paused_upon_creation=True
 )
 
 NUM_WORKERS = 2
 VCPUS_PER_WORKER = 2
 PARALLELISM_MULTIPLIER = 3
 
-project_id = "datos-350705"
+project_id = "clase-spark-365815"
 cluster_name = "pred-yellow-data"
 
 CLUSTER_CONFIG = ClusterGenerator(

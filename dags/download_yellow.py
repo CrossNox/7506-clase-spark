@@ -10,7 +10,9 @@ from airflow.operators.python import BranchPythonOperator, PythonOperator
 from google.cloud import storage
 from tqdm import tqdm
 
-DEFAULT_URL = "https://nyc-tlc.s3.amazonaws.com/trip+data/{dataset}_tripdata_{year}-{month:02}.{file_format}"
+DEFAULT_URL = "https://d37ci6vzurychx.cloudfront.net/trip-data/{dataset}_tripdata_{year}-{month:02}.parquet"
+
+# DEFAULT_URL = "https://nyc-tlc.s3.amazonaws.com/trip+data/{dataset}_tripdata_{year}-{month:02}.{file_format}"
 
 
 cfg = ycm.Config(from_items={})
@@ -37,6 +39,9 @@ def download_dataset(
     )
     res = requests.get(url, stream=True)
     res.raise_for_status()
+
+    print(f"Downloading file from {url}")
+
     with tqdm(
         desc="Downloading file",
         unit="B",
@@ -64,8 +69,8 @@ default_args = {
 
 
 dag = DAG(
-    "download_data",
-    description="Monthly data download",
+    "download_yellow_data",
+    description="Monthly yellow data download",
     default_args=default_args,
     schedule_interval="@monthly",
     max_active_runs=4,
@@ -75,6 +80,9 @@ dag = DAG(
 
 
 def check_format(dataset, year, month):
+    if datetime.today() >= datetime(2022, 5, 13):
+        return f"sense_{dataset}_parquet"
+
     if dataset == "yellow":
         if year <= 2010:
             return "sense_yellow_csv"
@@ -97,8 +105,8 @@ with dag:
         python_callable=check_format,
         op_args=(
             "yellow",
-            "{{ dag_run.logical_date.year }}",
-            "{{ dag_run.logical_date.month }}",
+            "{{ logical_date.subtract(months=2).year }}",
+            "{{ logical_date.subtract(months=2).month }}",
         ),
     )
 
@@ -107,8 +115,8 @@ with dag:
         python_callable=check_file_available,
         op_kwargs={
             "dataset": "yellow",
-            "year": "{{ dag_run.logical_date.year }}",
-            "month": "{{ dag_run.logical_date.month }}",
+            "year": "{{ logical_date.subtract(months=2).year }}",
+            "month": "{{ logical_date.subtract(months=2).month }}",
             "file_format": "parquet",
         },
     )
@@ -118,8 +126,8 @@ with dag:
         python_callable=check_file_available,
         op_kwargs={
             "dataset": "yellow",
-            "year": "{{ dag_run.logical_date.year }}",
-            "month": "{{ dag_run.logical_date.month }}",
+            "year": "{{ logical_date.subtract(months=2).year }}",
+            "month": "{{ logical_date.subtract(months=2).month }}",
             "file_format": "csv",
         },
     )
@@ -129,8 +137,8 @@ with dag:
         python_callable=download_dataset,
         op_kwargs={
             "dataset": "yellow",
-            "year": "{{ dag_run.logical_date.year }}",
-            "month": "{{ dag_run.logical_date.month }}",
+            "year": "{{ logical_date.subtract(months=2).year }}",
+            "month": "{{ logical_date.subtract(months=2).month }}",
             "file_format": "parquet",
         },
     )
@@ -140,8 +148,8 @@ with dag:
         python_callable=download_dataset,
         op_kwargs={
             "dataset": "yellow",
-            "year": "{{ dag_run.logical_date.year }}",
-            "month": "{{ dag_run.logical_date.month }}",
+            "year": "{{ logical_date.subtract(months=2).year }}",
+            "month": "{{ logical_date.subtract(months=2).month }}",
             "file_format": "csv",
         },
     )
