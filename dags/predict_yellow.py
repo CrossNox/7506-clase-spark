@@ -25,9 +25,9 @@ dag = DAG(
     is_paused_upon_creation=True
 )
 
-NUM_WORKERS = 2
+NUM_WORKERS = 3
 VCPUS_PER_WORKER = 2
-PARALLELISM_MULTIPLIER = 3
+PARALLELISM_MULTIPLIER = 4
 
 project_id = "clase-spark-365815"
 cluster_name = "pred-yellow-data"

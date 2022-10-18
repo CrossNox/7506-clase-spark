@@ -12,8 +12,6 @@ from tqdm import tqdm
 
 DEFAULT_URL = "https://d37ci6vzurychx.cloudfront.net/trip-data/{dataset}_tripdata_{year}-{month:02}.parquet"
 
-# DEFAULT_URL = "https://nyc-tlc.s3.amazonaws.com/trip+data/{dataset}_tripdata_{year}-{month:02}.{file_format}"
-
 
 cfg = ycm.Config(from_items={})
 

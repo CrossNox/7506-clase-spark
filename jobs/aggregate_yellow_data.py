@@ -3,6 +3,7 @@ import argparse
 import pyspark.sql.functions as F
 from pyspark.sql import SparkSession, SQLContext
 
+
 def run_job(bucket: str, year: int, month: int):
     spark = (
         SparkSession.builder.config(
@@ -39,7 +40,7 @@ def run_job(bucket: str, year: int, month: int):
         F.avg("trip_distance").alias("avg_trip_distance"),
         F.avg("tip_perc").alias("avg_tip_perc"),
     )
-
+    
     df.write.mode("overwrite").partitionBy("year", "month").parquet(
         "gs://7506-nyc-taxi/analytical/yellow/"
     )
